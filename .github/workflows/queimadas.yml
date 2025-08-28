@@ -5,7 +5,7 @@ permissions:
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '*/10 * * * *'   # a cada 10 minutos (UTC)
   workflow_dispatch:
 
 jobs:
@@ -15,16 +15,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          persist-credentials: true
           fetch-depth: 0
+          persist-credentials: true
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      - name: Baixar INPE e gerar CSV
+      - name: Baixar INPE e gerar CSVs
         run: |
           node scripts/baixar_inpe.js
 
@@ -33,7 +32,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if [ -n "$(git status --porcelain)" ]; then
-            git add queimada/queimadas.csv
+            git add queimada/queimadas.csv queimada/ultimas_5h.csv queimada/ultimas_10h.csv
+            git add -A queimada/10min/
             git commit -m "Atualiza GOES-19 $(date -u +'%Y-%m-%d %H:%M') UTC"
             git push
           else
