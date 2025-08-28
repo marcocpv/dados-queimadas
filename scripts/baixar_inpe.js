@@ -13,6 +13,20 @@ function roundTo10MinUTC(d) {
   t.setUTCMinutes(Math.floor(t.getUTCMinutes() / 10) * 10, 0, 0);
   return t;
 }
+// Alinha janelas ao compasso desejado (ex.: 06,16,26,36,46,56). Fallback pode usar âncora 00.
+function nearestPastWindowUTC(d, anchorMinute = 6) {
+  const t = new Date(d.getTime());
+  const m = t.getUTCMinutes();
+  const windows = [0,10,20,30,40,50].map(x => (anchorMinute + x) % 60).sort((a,b)=>a-b);
+  let sel = -1;
+  for (const w of windows) if (w <= m) sel = w;
+  if (sel === -1) {
+    t.setUTCHours(t.getUTCHours() - 1);
+    sel = windows[windows.length - 1];
+  }
+  t.setUTCMinutes(sel, 0, 0);
+  return t;
+}
 function formatNameUTC(d) {
   const yyyy = d.getUTCFullYear();
   const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
@@ -124,22 +138,31 @@ async function buildAggregate(hours, base) {
 }
 
 async function main() {
-  // 1) Baixa/descobre o último disponível (até 60 min para trás)
-  const now = roundTo10MinUTC(new Date());
+  // 1) Descobrir o último disponível ancorando em 06 (fallback 00) e olhando até ~80min
+  const now = new Date();
   let used = null;
   let rows = [];
-  for (let back = 0; back <= 60; back += 10) {
-    const t = new Date(now.getTime());
+
+  let base = nearestPastWindowUTC(now, 6);
+  for (let back = 0; back <= 80; back += 10) {
+    const t = new Date(base.getTime());
     t.setUTCMinutes(t.getUTCMinutes() - back);
     const fetched = await fetchSlot(t);
-    if (fetched.length > 0) {
-      rows = fetched;
-      used = t;
-      break;
+    if (fetched.length > 0) { rows = fetched; used = t; break; }
+  }
+
+  if (!used) {
+    base = nearestPastWindowUTC(now, 0);
+    for (let back = 0; back <= 80; back += 10) {
+      const t = new Date(base.getTime());
+      t.setUTCMinutes(t.getUTCMinutes() - back);
+      const fetched = await fetchSlot(t);
+      if (fetched.length > 0) { rows = fetched; used = t; break; }
     }
   }
+
   if (!used) {
-    console.log('Nenhum CSV disponível nos últimos 60 min.');
+    console.log('Nenhum CSV disponível nas últimas ~80 min.');
     return;
   }
 
@@ -148,10 +171,11 @@ async function main() {
   writeCsv(slotPath(used), rows);
 
   // 3) Gera agregados 5h e 10h lendo do histórico 10min (e buscando faltantes)
-  const agg5 = await buildAggregate(5, now);
+  const aggBase = base; // base ancorada ao compasso do INPE
+  const agg5 = await buildAggregate(5, aggBase);
   writeCsv(path.join(process.cwd(), 'queimada', 'ultimas_5h.csv'), agg5);
 
-  const agg10 = await buildAggregate(10, now);
+  const agg10 = await buildAggregate(10, aggBase);
   writeCsv(path.join(process.cwd(), 'queimada', 'ultimas_10h.csv'), agg10);
 
   console.log(`Último: ${rows.length} | 5h: ${agg5.length} | 10h: ${agg10.length}`);
