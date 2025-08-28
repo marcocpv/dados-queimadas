@@ -1,0 +1,34 @@
+name: Atualizar Queimadas (GOES-19)
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # a cada 10 minutos (UTC)
+  workflow_dispatch:          # permite rodar manualmente
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Baixar INPE e gerar CSV
+        run: |
+          node scripts/baixar_inpe.js
+
+      - name: Commit e push se mudou
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain)" ]; then
+            git add queimada/queimadas.csv
+            git commit -m "Atualiza GOES-19 $(date -u +'%Y-%m-%d %H:%M') UTC"
+            git push
+          else
+            echo "Sem mudanças"
+          fi
