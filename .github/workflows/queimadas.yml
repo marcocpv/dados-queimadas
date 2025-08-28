@@ -5,7 +5,7 @@ permissions:
 
 on:
   schedule:
-    - cron: '*/10 * * * *'   # a cada 10 minutos (UTC)
+    - cron: '2,12,22,32,42,52 * * * *'  # UTC
   workflow_dispatch:
 
 jobs:
