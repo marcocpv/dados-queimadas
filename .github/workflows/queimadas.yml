@@ -5,8 +5,12 @@ permissions:
 
 on:
   schedule:
-    - cron: '2,12,22,32,42,52 * * * *'  # UTC
+    - cron: '3,13,23,33,43,53 * * * *'  # roda 3 min após cada janela de 10 min (UTC)
   workflow_dispatch:
+
+concurrency:
+  group: atualizar-queimadas
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -22,6 +26,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+
+      - name: Aguardar fechamento da janela (INPE)
+        run: sleep 90
 
       - name: Baixar INPE e gerar CSVs
         run: |
