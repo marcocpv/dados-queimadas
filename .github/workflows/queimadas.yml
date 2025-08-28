@@ -1,9 +1,12 @@
 name: Atualizar Queimadas (GOES-19)
 
+permissions:
+  contents: write
+
 on:
   schedule:
-    - cron: '*/10 * * * *'   # a cada 10 minutos (UTC)
-  workflow_dispatch:          # permite rodar manualmente
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -11,6 +14,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
