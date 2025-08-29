@@ -5,7 +5,7 @@ permissions:
 
 on:
   schedule:
-    - cron: '6,16,26,36,46,56 * * * *'  # roda 3 min após cada janela de 10 min (UTC)
+    - cron: '4,14,24,34,44,54 * * * *'  # roda 4 min após cada janela de 10 min (UTC)
   workflow_dispatch:
 
 concurrency:
